@@ -8,7 +8,6 @@ import numpy as np
 import pandas as pd
 import io
 
-
 # --- Model Definition ---
 # This class MUST EXACTLY match the one in your 'model_training.py'
 class CNNModel(nn.Module):
@@ -50,7 +49,7 @@ def load_model(model_path):
     """
     Loads the trained PyTorch model from the specified path.
     """
-    try
+    try:
         # Use the *exact* class name from your training script
         model = CNNModel() 
         # Load the saved weights.
