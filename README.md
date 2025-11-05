@@ -1,15 +1,22 @@
 # Hand-Written-Digit-Classifier
 
-
 This project is a simple web application that recognizes handwritten digits. It uses a Convolutional Neural Network (CNN) built with PyTorch and a user interface created with Streamlit.
 
 Users can either upload an image of a digit or use their device's camera to take a picture, and the model will predict the digit.
 
+Model Performance
+
+When trained for 10 epochs using the train.py script, the model achieves:
+
+Test Accuracy: 98.88%
+
+Average Test Loss: 0.0366
+
 Project Structure
 
-train.py: The Python script to train the CNN model. It downloads the MNIST dataset, trains the model, and saves the weights as mnist_cnn_model.pth.
+train.py: The Python script to train the CNN model (defined as CNNModel). It downloads the MNIST dataset, trains the model, and saves the weights as mnist_cnn_model.pth.
 
-app.py: The main Streamlit application script. It loads the pre-trained mnist_cnn_model.pth and provides the web interface for inference.
+app.py: The main Streamlit application script. It loads the pre-trained mnist_cnn_model.pth and provides the web interface for inference. It is critical that the CNNModel class in this file matches the one in train.py.
 
 requirements.txt: A list of all necessary Python packages to run the project.
 
