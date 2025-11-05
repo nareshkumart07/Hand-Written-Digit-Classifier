@@ -107,8 +107,8 @@ def preprocess_image(image_bytes):
 
 # --- Streamlit App ---
 
-st.set_page_config(page_title="MNIST Digit Recognizer", layout="wide")
-st.title("🧠 MNIST Digit Recognizer")
+st.set_page_config(page_title="Hand Written Digit Classifier", layout="wide")
+st.title("🧠 Hand Written Digit Classifier")
 
 # Load the model
 model = load_model('mnist_cnn_model.pth')
