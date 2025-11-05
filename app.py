@@ -9,45 +9,50 @@ import pandas as pd
 import io
 
 # --- Model Definition ---
-# I've defined a network architecture that matches the layers
-# found in your .pth file (conv1, conv2, fc1, fc2, fc3).
-# This is a classic LeNet-style architecture.
-class Net(nn.Module):
-    def __init__(self):
-        super(Net, self).__init__()
-        # 1 input channel (grayscale), 6 output channels, 5x5 kernel
-        self.conv1 = nn.Conv2d(1, 6, 5)
-        self.pool1 = nn.MaxPool2d(2, 2)
-        # 6 input channels, 16 output channels, 5x5 kernel
-        self.conv2 = nn.Conv2d(6, 16, 5)
-        self.pool2 = nn.MaxPool2d(2, 2)
-        # Input features: 16 channels * 4x4 feature map size
-        # (28x28 -> conv1(5x5) -> 24x24 -> pool1(2x2) -> 12x12 -> conv2(5x5) -> 8x8 -> pool2(2x2) -> 4x4)
-        self.fc1 = nn.Linear(16 * 4 * 4, 120)
-        self.fc2 = nn.Linear(120, 84)
-        self.fc3 = nn.Linear(84, 10) # 10 classes (digits 0-9)
+# This class MUST EXACTLY match the one in your 'model_training.py'
+class CNNModel(nn.Module):
+  def __init__(self):
+    super(CNNModel,self).__init__()
+    self.conv1 = nn.Conv2d(in_channels=1,out_channels=16,kernel_size=3,stride=1,padding=1)
+    self.pool1 = nn.MaxPool2d(kernel_size=2,stride=2) # 28x28 -> 14x14
+    self.conv2 = nn.Conv2d(in_channels=16,out_channels=32,kernel_size=3,stride=1 ,padding=1)
+    self.pool2 = nn.MaxPool2d(kernel_size=2,stride=2) # 14x14 -> 7x7
+    self.fc1 = nn.Linear(32*7*7,128) # 32 channels * 7 * 7 image size
+    self.fc2 = nn.Linear(128,64)
+    self.fc3 = nn.Linear(64,10)
+    self.relu = nn.ReLU()
+    # self.sigmoid = nn.Sigmoid() # Not used for 10-class output
 
-    def forward(self, x):
-        x = self.pool1(F.relu(self.conv1(x)))
-        x = self.pool2(F.relu(self.conv2(x)))
-        x = x.view(-1, 16 * 4 * 4) # Flatten the tensor
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = self.fc3(x)
-        return F.log_softmax(x, dim=1)
+  def forward(self ,x):
+    x = self.pool1(self.relu(self.conv1(x)))
+    x = self.pool2(self.relu(self.conv2(x)))
+    x = x.view(x.size(0),-1)  # flatten
+    
+    # --- CRITICAL ---
+    # This forward pass must match how the model was TRAINED.
+    # The 'model_training.py' script uses ReLU on fc1 and fc2.
+    # If you trained *without* these, comment them out and uncomment the lines below.
+    x = self.relu(self.fc1(x))
+    x = self.relu(self.fc2(x))
+    
+    # Uncomment these ONLY if your training script had no activations on fc1/fc2
+    # x = self.fc1(x) 
+    # x = self.fc2(x) 
+    
+    x = self.fc3(x) # Raw logits output
+    return x
 
 # --- Utility Functions ---
 
-# Use Streamlit's cache to load the model only once
 @st.cache_resource
 def load_model(model_path):
     """
     Loads the trained PyTorch model from the specified path.
     """
-    try:
-        model = Net()
-        # Load the saved weights. We use map_location='cpu' to ensure it
-        # runs on any machine, even if it was trained on a GPU.
+    try
+        # Use the *exact* class name from your training script
+        model = CNNModel() 
+        # Load the saved weights.
         model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
         model.eval() # Set model to evaluation mode
         return model
@@ -58,27 +63,20 @@ def load_model(model_path):
         return None
     except RuntimeError as e:
         st.error("Error loading model weights.")
-        st.error("This usually means the defined model architecture (class Net) does not")
-        st.error("exactly match the architecture used to save the weights.")
+        st.error("This usually means the defined model architecture (class CNNModel) in app.py")
+        st.error("does not exactly match the architecture used to save the weights.")
         st.error(f"Details: {e}")
         return None
 
 def preprocess_image(image_bytes):
     """
     Preprocesses the uploaded image to be compatible with the MNIST model.
-    - Converts to grayscale
-    - Resizes to 28x28
-    - Inverts colors (model expects white digit on black background)
-    - Normalizes
     """
     try:
         # Open the image
         img = Image.open(io.BytesIO(image_bytes)).convert('L') # Convert to grayscale
 
         # --- Handle Color Inversion ---
-        # MNIST is white digit on black bg. User images are usually black digit on white bg.
-        # We check the average pixel value. If it's high (>128), it's likely
-        # a bright background (white paper), so we invert it.
         img_array = np.array(img)
         if np.mean(img_array) > 128:
             img = ImageOps.invert(img)
@@ -86,19 +84,20 @@ def preprocess_image(image_bytes):
         # Resize to 28x28
         img = img.resize((28, 28), Image.Resampling.LANCZOS)
         
-        # Define the same transformations as the MNIST dataset
-        # Normalization values (mean, std) for MNIST
+        # --- CRITICAL ---
+        # Define transformations to match your training script
+        # Your 'model_training.py' only uses ToTensor() and not Normalize()
         transform = transforms.Compose([
             transforms.ToTensor(),
-            transforms.Normalize((0.1307,), (0.3081,))
+            # transforms.Normalize((0.1307,), (0.3081,)) # <-- DO NOT USE: Your model was not trained with this.
         ])
         
         # Apply transform and add batch dimension (1, 1, 28, 28)
         tensor = transform(img).unsqueeze(0)
         
         # Convert tensor back to PIL Image for display
-        # We need to un-normalize to show it correctly
-        display_img = transforms.ToPILImage()(tensor.squeeze(0) * 0.3081 + 0.1307)
+        # We don't need to un-normalize since we never normalized
+        display_img = transforms.ToPILImage()(tensor.squeeze(0))
 
         return tensor, display_img
         
@@ -108,8 +107,8 @@ def preprocess_image(image_bytes):
 
 # --- Streamlit App ---
 
-st.set_page_config(page_title="Hand Written Digit Classifier", layout="wide")
-st.title("🧠 Hand Written Digit Classifier")
+st.set_page_config(page_title="MNIST Digit Recognizer", layout="wide")
+st.title("🧠 MNIST Digit Recognizer")
 
 # Load the model
 model = load_model('mnist_cnn_model.pth')
@@ -117,14 +116,10 @@ model = load_model('mnist_cnn_model.pth')
 if model:
     st.success("Model 'mnist_cnn_model.pth' loaded successfully!")
     st.info("""
-        **Welcome!** Try to predict a handwritten digit.
+        **Welcome!** This app uses the `CNNModel` architecture.
         
         1.  **Upload** an image file.
         2.  Or, use your **Camera** to take a picture of a digit.
-        
-        **For best results:** Use a clear, centered, single digit (like '7') 
-        on a plain background. The app will process it into a 28x28 image 
-        to match the model's training data.
     """)
 
     image_data = None
@@ -151,7 +146,7 @@ if model:
         with col1:
             st.image(image_data, caption="Your Image", use_column_width=True)
         
-        tensor, display_img = preprocess_image(image_data)
+        tensor, display_img = preprocess_image(image_bytes)
         
         if tensor is not None:
             with col2:
@@ -159,8 +154,9 @@ if model:
             
             # Make prediction
             with torch.no_grad():
-                output = model(tensor)
-                probabilities = F.softmax(output, dim=1)
+                output = model(tensor) # Model returns raw logits
+                # Apply softmax to logits to get probabilities
+                probabilities = F.softmax(output, dim=1) 
                 top_prob, top_class = probabilities.topk(1)
                 
                 pred_digit = top_class.item()
@@ -175,7 +171,6 @@ if model:
                     This can happen if:
                     - The image is not a digit.
                     - The digit is unclear or poorly written.
-                    - There are multiple digits or other objects in the image.
                 """)
             
             # --- Show Probability Chart ---
