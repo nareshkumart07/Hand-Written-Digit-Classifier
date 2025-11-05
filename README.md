@@ -8,9 +8,8 @@ Model Performance
 
 When trained for 10 epochs using the train.py script, the model achieves:
 
-Test Accuracy: 98.88%
-
-Average Test Loss: 0.0366
+Test Accuracy: 99.14%
+Average Test Loss: 0.0586
 
 Project Structure
 
