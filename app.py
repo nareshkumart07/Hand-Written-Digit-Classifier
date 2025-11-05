@@ -146,7 +146,7 @@ if model:
         with col1:
             st.image(image_data, caption="Your Image", use_column_width=True)
         
-        tensor, display_img = preprocess_image(image_bytes)
+        tensor, display_img = preprocess_image(image_data)
         
         if tensor is not None:
             with col2:
