@@ -6,7 +6,7 @@ Users can either upload an image of a digit or use their device's camera to take
 
 Model Performance
 
-When trained for 10 epochs using the train.py script, the model achieves:
+When trained for 50 epochs using the train.py script, the model achieves:
 
 Test Accuracy: 99.14%
 Average Test Loss: 0.0586
